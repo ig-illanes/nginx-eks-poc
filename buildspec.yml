@@ -27,7 +27,6 @@ phases:
   build:
     commands:
       - docker build -t "$IMAGE" .
-      # - "docker run --rm \"$IMAGE\" sh -c 'ls -l /usr/share/nginx/html && echo \"----\" && head -n 20 /usr/share/nginx/html/index.html'"
       - docker push "$IMAGE"
 
   post_build:
