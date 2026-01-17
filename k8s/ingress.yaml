@@ -4,9 +4,9 @@ metadata:
   name: edx-poc-ing
   namespace: edx-poc
   annotations:
-    kubernetes.io/ingress.class: alb
     alb.ingress.kubernetes.io/scheme: internet-facing
 spec:
+  ingressClassName: alb
   rules:
     - http:
         paths:
