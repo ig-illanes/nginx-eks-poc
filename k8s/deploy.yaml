@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edx-poc
+  namespace: edx-poc
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edx-poc
+  template:
+    metadata:
+      labels:
+        app: edx-poc
+    spec:
+      containers:
+        - name: web
+          image: REPLACE_IMAGE
+          ports:
+            - containerPort: 80

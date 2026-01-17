@@ -1,0 +1,40 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_REGION: us-east-1
+    EKS_CLUSTER_NAME: edx-poc
+    ECR_REPO: edx-poc-nginx
+    K8S_NAMESPACE: edx-poc
+
+phases:
+  install:
+    commands:
+      - curl -sSL -o kubectl https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl
+      - chmod +x kubectl && mv kubectl /usr/local/bin/
+      - kubectl version --client=true
+
+  pre_build:
+    commands:
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO"
+      - aws ecr describe-repositories --repository-names "$ECR_REPO" --region "$AWS_REGION" >/dev/null 2>&1 || \
+        aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
+      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+      - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE="$ECR_URI:$IMAGE_TAG"
+
+  build:
+    commands:
+      - docker build -t "$IMAGE" .
+      - docker push "$IMAGE"
+
+  post_build:
+    commands:
+      - aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
+      - kubectl apply -f k8s/namespace.yaml
+      - sed "s|REPLACE_IMAGE|$IMAGE|g" k8s/deploy.yaml | kubectl apply -f -
+      - kubectl apply -f k8s/svc.yaml
+      - kubectl apply -f k8s/ingress.yaml
+      - kubectl -n "$K8S_NAMESPACE" rollout status deploy/edx-poc --timeout=180s
+      - kubectl -n "$K8S_NAMESPACE" get ingress edx-poc-ing -o wide
