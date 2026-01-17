@@ -40,5 +40,6 @@ phases:
       - sed "s|REPLACE_IMAGE|$IMAGE|g" k8s/deploy.yaml | kubectl apply -f -
       - kubectl apply -f k8s/svc.yaml
       - kubectl apply -f k8s/ingress.yaml
+      - kubectl -n "$K8S_NAMESPACE" set image deploy/edx-poc nginx="$IMAGE"
       - kubectl -n "$K8S_NAMESPACE" rollout status deploy/edx-poc --timeout=180s
       - kubectl -n "$K8S_NAMESPACE" get ingress edx-poc-ing -o wide

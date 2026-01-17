@@ -14,7 +14,7 @@ spec:
         app: edx-poc
     spec:
       containers:
-        - name: edx-poc
+        - name: nginx
           image: REPLACE_IMAGE
           ports:
             - containerPort: 80
