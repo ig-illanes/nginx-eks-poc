@@ -10,6 +10,7 @@ env:
 phases:
   install:
     commands:
+      - echo "INSTALLING kubectl..."
       - curl -sSL -o kubectl https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl
       - chmod +x kubectl && mv kubectl /usr/local/bin/
       - kubectl version --client=true
@@ -18,11 +19,14 @@ phases:
     commands:
       - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
       - ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO"
-      - aws ecr describe-repositories --repository-names "$ECR_REPO" --region "$AWS_REGION" >/dev/null 2>&1 || \
-        aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
       - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin "$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
       - IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE="$ECR_URI:$IMAGE_TAG"
+      - echo "Ensuring ECR repo exists (idempotent)..."
+      - aws ecr describe-repositories --repository-names "$ECR_REPO" --region "$AWS_REGION" >/dev/null 2>&1 || \
+        aws ecr create-repository --repository-name "$ECR_REPO" --region "$AWS_REGION"
+
+      - echo "Deploying image $IMAGE"
 
   build:
     commands:
